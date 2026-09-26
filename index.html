@@ -4,138 +4,259 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Carousel Splitter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f6f6f4;
-    --panel: #ffffff;
-    --text: #1b1b1b;
-    --muted: #6b6b6b;
-    --border: #dcdcd8;
-    --accent: #d6336c;
-    --accent-text: #ffffff;
-    --error-bg: #fdecec;
-    --error-text: #a11d1d;
-    --guide: rgba(255, 255, 255, 0.9);
-    --guide-shadow: rgba(0, 0, 0, 0.6);
+    color-scheme: dark;
+    --mat: #2e5a4c;
+    --mat-deep: #234639;
+    --grid: #356352;
+    --grid-major: #427262;
+    --ink: #e6ede8;
+    --muted: #bcd0c6;
+    --line: rgba(230, 237, 232, 0.5);
+    --blade: #f5c400;
+    --blade-hover: #ffd42a;
+    --blade-ink: #17261f;
+    --error: #ff9b8a;
+    --score: rgba(255, 255, 255, 0.92);
+    --score-shadow: rgba(0, 0, 0, 0.4);
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #141414;
-      --panel: #1e1e1e;
-      --text: #ececec;
-      --muted: #9a9a9a;
-      --border: #333333;
-      --accent: #f06595;
-      --accent-text: #141414;
-      --error-bg: #3a1a1a;
-      --error-text: #ffb3b3;
+      --mat: #1d3a31;
+      --mat-deep: #152c25;
+      --grid: #224238;
+      --grid-major: #2c5043;
+      --muted: #a9bfb5;
     }
   }
+  [hidden] { display: none !important; }
   * { box-sizing: border-box; }
+
   body {
     margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+    color: var(--ink);
+    background-color: var(--mat);
+    background-image:
+      linear-gradient(var(--grid-major) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-major) 1px, transparent 1px),
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 60px 60px, 60px 60px, 12px 12px, 12px 12px;
+    font: 400 16px/1.5 "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
-  main { max-width: 1200px; margin: 0 auto; padding: 24px 16px 64px; }
-  h1 { font-size: 20px; margin: 0 0 4px; }
-  .sub { color: var(--muted); margin: 0 0 20px; }
+  main { max-width: 1200px; margin: 0 auto; padding: 48px 16px 96px; }
+  @media (min-width: 720px) { main { padding: 64px 32px 112px; } }
+
+  header { margin-bottom: 36px; }
+  h1 {
+    margin: 0 0 10px;
+    font-size: clamp(30px, 4.6vw, 48px);
+    font-weight: 700;
+    font-stretch: 125%;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+  }
+  .lede { margin: 0; max-width: 60ch; color: var(--muted); }
+
+  /* Ruler: ticks every 108px of source, a labelled mark at every 1080px cut. */
+  .ruler { position: relative; height: 32px; margin: 0 0 6px; }
+  .tick {
+    position: absolute; bottom: 0;
+    width: 1px; height: 5px; margin-left: -0.5px;
+    background: var(--line);
+  }
+  .tick.half { height: 9px; }
+  .tick.cut { height: 14px; background: var(--ink); }
+  .tick.end { margin-left: -1px; }
+  .mark {
+    position: absolute; top: 0;
+    font-size: 13px; font-stretch: 68%; font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    transform: translateX(-50%);
+  }
+  .mark.start { transform: none; }
+  .mark.end { transform: translateX(-100%); }
 
   #drop {
-    display: block;
-    border: 2px dashed var(--border);
-    border-radius: 12px;
-    background: var(--panel);
-    padding: 36px 16px;
+    position: relative;
+    display: grid;
+    place-items: center;
+    height: clamp(220px, 40vw, 380px);
+    padding: 16px;
+    border: 1.5px dashed var(--line);
+    background: rgba(21, 44, 37, 0.45);
     text-align: center;
     cursor: pointer;
-    transition: border-color .15s, background .15s;
+    transition: border-color .15s, background-color .15s;
   }
-  #drop.over { border-color: var(--accent); }
-  #drop strong { color: var(--accent); }
-  #file { display: none; }
-
-  #error {
-    display: none;
-    margin-top: 16px;
-    padding: 12px 14px;
-    border-radius: 8px;
-    background: var(--error-bg);
-    color: var(--error-text);
-  }
-
-  #result { display: none; margin-top: 24px; }
-  .bar {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
-  }
-  .meta { color: var(--muted); }
-  button {
-    font: inherit;
-    border: 1px solid var(--border);
-    background: var(--panel);
-    color: var(--text);
-    border-radius: 8px;
-    padding: 6px 12px;
-    cursor: pointer;
-  }
-  button.primary {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--accent-text);
-    font-weight: 600;
-    padding: 8px 16px;
-  }
-
-  .full { position: relative; line-height: 0; border-radius: 8px; overflow: hidden; }
-  .full img { width: 100%; height: auto; display: block; }
-  .guide {
+  #drop:hover, #drop.over { border-color: var(--blade); }
+  #drop.over { background: rgba(245, 196, 0, 0.07); }
+  #drop:focus-within { outline: 2px solid var(--blade); outline-offset: 4px; }
+  .drop-seam {
     position: absolute; top: 0; bottom: 0; width: 0;
-    border-left: 2px dashed var(--guide);
-    filter: drop-shadow(0 0 1px var(--guide-shadow));
+    border-left: 1.5px dashed var(--line);
+  }
+  #drop.over .drop-seam { border-color: var(--blade); }
+  .drop-text {
+    position: relative;
+    display: block;
+    padding: 14px 20px;
+    background: var(--mat);
+  }
+  .drop-title { display: block; font-size: 20px; font-weight: 600; }
+  .drop-choose { display: block; text-decoration: underline; text-underline-offset: 3px; }
+  #drop:hover .drop-choose { color: var(--blade); }
+  .drop-hint {
+    display: block; margin-top: 6px;
+    color: var(--muted); font-size: 14px; font-stretch: 75%;
+  }
+  .vh {
+    position: absolute; width: 1px; height: 1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+
+  #full { position: relative; line-height: 0; outline: 1px solid var(--line); }
+  #full img { width: 100%; height: auto; display: block; }
+  .score {
+    position: absolute; top: 0; bottom: 0;
+    width: 1px; margin-left: -0.5px;
+    background: var(--score);
+    box-shadow: 0 0 0 1px var(--score-shadow);
     pointer-events: none;
   }
+  .score::before, .score::after {
+    content: "";
+    position: absolute; left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+  }
+  .score::before { top: 0; border-top: 9px solid var(--blade); border-bottom: 0; }
+  .score::after { bottom: 0; border-bottom: 9px solid var(--blade); border-top: 0; }
+  .check { margin: 10px 0 0; color: var(--muted); font-size: 14px; }
 
-  #slides {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 12px;
-    margin-top: 20px;
+  #error {
+    margin: 0 0 24px;
+    max-width: 70ch;
+    padding: 12px 16px;
+    background: var(--mat-deep);
+    border-left: 3px solid var(--error);
   }
-  .slide {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 8px;
-  }
-  .slide img { width: 100%; aspect-ratio: 3 / 4; display: block; border-radius: 6px; }
-  .slide .row {
+
+  .bar {
     display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 14px 24px;
+    margin: 28px 0 24px;
+  }
+  .meta { min-width: 0; }
+  .meta-name {
+    display: block; font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .meta-dims {
+    display: block; color: var(--muted);
+    font-stretch: 75%; font-variant-numeric: tabular-nums;
+  }
+  .actions { display: flex; flex-direction: row-reverse; gap: 10px; flex-wrap: wrap; }
+  @media (max-width: 480px) {
+    .actions { width: 100%; flex-direction: column; }
+  }
+
+  button {
+    font: inherit;
+    font-weight: 600;
+    min-height: 44px;
+    padding: 10px 18px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  button:focus-visible { outline: 2px solid var(--blade); outline-offset: 3px; }
+  .btn-ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  .btn-ghost:hover { border-color: var(--ink); }
+  .btn-blade { background: var(--blade); color: var(--blade-ink); border: 1px solid var(--blade); }
+  .btn-blade:hover { background: var(--blade-hover); }
+  .btn-blade:disabled { opacity: .75; cursor: progress; }
+
+  /* Pieces start touching, as one strip, then pull apart. */
+  .pieces {
+    list-style: none; margin: 0; padding: 0;
+    display: grid;
+    grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr));
+    column-gap: 0;
+    row-gap: 22px;
+    transition: column-gap .6s cubic-bezier(.2, .8, .2, 1) .1s;
+  }
+  .pieces.apart { column-gap: 16px; }
+  @media (max-width: 640px) {
+    .pieces { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  .piece img {
+    display: block; width: 100%; aspect-ratio: 3 / 4;
+    outline: 1px solid var(--line);
+    background: var(--mat-deep);
+  }
+  .piece-row {
+    display: flex; align-items: baseline; justify-content: space-between;
+    flex-wrap: wrap; gap: 0 8px;
     margin-top: 8px;
   }
-  .slide .num { font-weight: 600; }
+  .piece-num { font-stretch: 75%; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .btn-text {
+    min-height: 44px; padding: 0; margin: -10px 0;
+    background: none; border: 0; color: var(--ink);
+    font-weight: 500;
+    text-decoration: underline; text-underline-offset: 3px;
+  }
+  .btn-text:hover { color: var(--blade); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pieces, #drop { transition: none; }
+  }
 </style>
 </head>
 <body>
 <main>
-  <h1>IG Carousel Splitter</h1>
-  <p class="sub">Drop a panorama that is 1440px tall and a multiple of 1080px wide. It gets cut into lossless 1080×1440 PNG slides.</p>
+  <header>
+    <h1>Carousel splitter</h1>
+    <p class="lede">Cuts a 1440px-tall panorama into 1080×1440 PNG slides for a seamless Instagram carousel. Nothing is resized, and the image never leaves your device.</p>
+  </header>
+
+  <div id="error" role="alert" hidden></div>
+
+  <div class="ruler" id="ruler" aria-hidden="true"></div>
 
   <label id="drop">
-    <input id="file" type="file" accept="image/*">
-    Drop an image here or <strong>click to choose</strong>
+    <input id="file" class="vh" type="file" accept="image/*">
+    <span class="drop-seam" style="left: 33.333%"></span>
+    <span class="drop-seam" style="left: 66.667%"></span>
+    <span class="drop-text">
+      <span class="drop-title" id="drop-title">Drop a panorama here</span>
+      <span class="drop-choose">or choose a file</span>
+      <span class="drop-hint">1440px tall, width in steps of 1080px</span>
+    </span>
   </label>
 
-  <div id="error"></div>
+  <div id="full" hidden></div>
+  <p class="check" id="check" hidden>Check that nothing important sits on a cut line.</p>
 
-  <section id="result">
+  <section id="result" hidden>
     <div class="bar">
-      <span class="meta" id="meta"></span>
-      <button class="primary" id="all">Download all</button>
+      <div class="meta">
+        <span class="meta-name" id="meta-name"></span>
+        <span class="meta-dims" id="meta-dims"></span>
+      </div>
+      <div class="actions">
+        <button class="btn-blade" id="all" type="button">Download .zip</button>
+        <button class="btn-ghost" id="another" type="button">Choose another</button>
+      </div>
     </div>
-    <div class="full" id="full"></div>
-    <div id="slides"></div>
+    <ol class="pieces" id="slides"></ol>
   </section>
 </main>
 
@@ -144,22 +265,48 @@ const SLIDE_W = 1080;
 const SLIDE_H = 1440;
 
 const $ = (id) => document.getElementById(id);
-const state = { slides: [], previewUrl: null };
+const state = { slides: [], previewUrl: null, base: '' };
+
+function renderRuler(count) {
+  const ticks = count * 10;
+  const parts = [];
+  for (let i = 0; i <= ticks; i++) {
+    const t = document.createElement('span');
+    t.className = 'tick' + (i % 10 === 0 ? ' cut' : i % 5 === 0 ? ' half' : '') + (i === ticks ? ' end' : '');
+    t.style.left = `${(i / ticks) * 100}%`;
+    parts.push(t);
+  }
+  for (let i = 0; i <= count; i++) {
+    const m = document.createElement('span');
+    m.className = 'mark' + (i === 0 ? ' start' : i === count ? ' end' : '');
+    m.style.left = `${(i / count) * 100}%`;
+    m.textContent = i * SLIDE_W;
+    parts.push(m);
+  }
+  $('ruler').replaceChildren(...parts);
+}
 
 function reset() {
   for (const s of state.slides) URL.revokeObjectURL(s.url);
   if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
   state.slides = [];
   state.previewUrl = null;
-  $('error').style.display = 'none';
-  $('result').style.display = 'none';
+  state.base = '';
+  $('error').hidden = true;
+  $('result').hidden = true;
+  $('full').hidden = true;
+  $('check').hidden = true;
+  $('drop').hidden = false;
+  $('drop-title').textContent = 'Drop a panorama here';
   $('full').replaceChildren();
   $('slides').replaceChildren();
+  $('slides').classList.remove('apart');
+  renderRuler(3);
 }
 
 function showError(msg) {
   $('error').textContent = msg;
-  $('error').style.display = 'block';
+  $('error').hidden = false;
 }
 
 function baseName(name) {
@@ -182,6 +329,81 @@ function download(slide) {
   a.remove();
 }
 
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+
+function crc32(bytes) {
+  let c = 0xffffffff;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+// Minimal zip writer using the "stored" method. PNG data is already compressed,
+// so deflating it again would only cost time.
+async function makeZip(files) {
+  const enc = new TextEncoder();
+  const now = new Date();
+  const time = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+  const date = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+  const UTF8_NAMES = 0x0800;
+  const entries = [];
+  const central = [];
+  let offset = 0;
+
+  for (const f of files) {
+    const data = new Uint8Array(await f.blob.arrayBuffer());
+    const name = enc.encode(f.name);
+    const crc = crc32(data);
+
+    const local = new DataView(new ArrayBuffer(30));
+    local.setUint32(0, 0x04034b50, true);
+    local.setUint16(4, 20, true);
+    local.setUint16(6, UTF8_NAMES, true);
+    local.setUint16(8, 0, true);
+    local.setUint16(10, time, true);
+    local.setUint16(12, date, true);
+    local.setUint32(14, crc, true);
+    local.setUint32(18, data.length, true);
+    local.setUint32(22, data.length, true);
+    local.setUint16(26, name.length, true);
+    entries.push(local, name, data);
+
+    const dir = new DataView(new ArrayBuffer(46));
+    dir.setUint32(0, 0x02014b50, true);
+    dir.setUint16(4, 20, true);
+    dir.setUint16(6, 20, true);
+    dir.setUint16(8, UTF8_NAMES, true);
+    dir.setUint16(10, 0, true);
+    dir.setUint16(12, time, true);
+    dir.setUint16(14, date, true);
+    dir.setUint32(16, crc, true);
+    dir.setUint32(20, data.length, true);
+    dir.setUint32(24, data.length, true);
+    dir.setUint16(28, name.length, true);
+    dir.setUint32(42, offset, true);
+    central.push(dir, name);
+
+    offset += 30 + name.length + data.length;
+  }
+
+  const dirSize = central.reduce((n, p) => n + p.byteLength, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true);
+  end.setUint16(8, files.length, true);
+  end.setUint16(10, files.length, true);
+  end.setUint32(12, dirSize, true);
+  end.setUint32(16, offset, true);
+
+  return new Blob([...entries, ...central, end], { type: 'application/zip' });
+}
+
 async function handleFile(file) {
   reset();
   if (!file) return;
@@ -190,23 +412,24 @@ async function handleFile(file) {
   try {
     bmp = await createImageBitmap(file);
   } catch {
-    showError(`Could not read "${file.name}" as an image.`);
+    showError(`Could not read "${file.name}" as an image. Try a PNG or JPEG.`);
     return;
   }
 
   const { width, height } = bmp;
   if (height !== SLIDE_H || width < SLIDE_W || width % SLIDE_W !== 0) {
-    const examples = [2, 3, 4, 5, 6].map((n) => n * SLIDE_W).join(' / ');
+    const examples = [2, 3, 4, 5, 6].map((n) => n * SLIDE_W).join(', ');
     showError(
-      `"${file.name}" is ${width}×${height}. It needs to be exactly ${SLIDE_H}px tall ` +
-      `and a multiple of ${SLIDE_W}px wide (e.g. ${examples}…).`
+      `"${file.name}" is ${width} × ${height}px. It needs to be exactly ${SLIDE_H}px tall ` +
+      `and a multiple of ${SLIDE_W}px wide, such as ${examples}.`
     );
     bmp.close();
     return;
   }
 
+  $('drop-title').textContent = 'Cutting…';
   const count = width / SLIDE_W;
-  const base = baseName(file.name);
+  state.base = baseName(file.name);
 
   for (let i = 0; i < count; i++) {
     const canvas = document.createElement('canvas');
@@ -216,7 +439,7 @@ async function handleFile(file) {
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(bmp, i * SLIDE_W, 0, SLIDE_W, SLIDE_H, 0, 0, SLIDE_W, SLIDE_H);
     const blob = await canvasToPng(canvas);
-    const name = `${base}_${String(i + 1).padStart(2, '0')}.png`;
+    const name = `${state.base}_${String(i + 1).padStart(2, '0')}.png`;
     state.slides.push({ blob, name, url: URL.createObjectURL(blob) });
   }
   bmp.close();
@@ -225,45 +448,71 @@ async function handleFile(file) {
 }
 
 function render(file, count, width, height) {
-  $('meta').textContent = `${file.name} · ${width}×${height} · ${count} slides`;
+  $('meta-name').textContent = file.name;
+  $('meta-dims').textContent = `${width} × ${height}px, ${count} slides`;
+  renderRuler(count);
 
   state.previewUrl = URL.createObjectURL(file);
   const img = document.createElement('img');
   img.src = state.previewUrl;
-  img.alt = 'Full image';
+  img.alt = `${file.name}, full panorama`;
   $('full').appendChild(img);
   for (let i = 1; i < count; i++) {
-    const g = document.createElement('div');
-    g.className = 'guide';
-    g.style.left = `calc(${(i / count) * 100}% - 1px)`;
-    $('full').appendChild(g);
+    const s = document.createElement('div');
+    s.className = 'score';
+    s.style.left = `${(i / count) * 100}%`;
+    $('full').appendChild(s);
   }
 
+  const list = $('slides');
+  list.style.setProperty('--n', count);
   state.slides.forEach((s, i) => {
-    const card = document.createElement('div');
-    card.className = 'slide';
+    const li = document.createElement('li');
+    li.className = 'piece';
     const thumb = document.createElement('img');
     thumb.src = s.url;
-    thumb.alt = s.name;
+    thumb.alt = `Slide ${i + 1}`;
     const row = document.createElement('div');
-    row.className = 'row';
+    row.className = 'piece-row';
     const num = document.createElement('span');
-    num.className = 'num';
-    num.textContent = String(i + 1).padStart(2, '0');
+    num.className = 'piece-num';
+    num.textContent = `Slide ${i + 1}`;
     const btn = document.createElement('button');
-    btn.textContent = 'Download';
+    btn.type = 'button';
+    btn.className = 'btn-text';
+    btn.textContent = 'Save PNG';
+    btn.setAttribute('aria-label', `Save slide ${i + 1} as PNG`);
     btn.addEventListener('click', () => download(s));
     row.append(num, btn);
-    card.append(thumb, row);
-    $('slides').appendChild(card);
+    li.append(thumb, row);
+    list.appendChild(li);
   });
 
-  $('result').style.display = 'block';
+  $('drop').hidden = true;
+  $('full').hidden = false;
+  $('check').hidden = count < 2;
+  $('result').hidden = false;
+  requestAnimationFrame(() => requestAnimationFrame(() => list.classList.add('apart')));
 }
 
-$('all').addEventListener('click', () => {
-  state.slides.forEach((s, i) => setTimeout(() => download(s), i * 150));
+$('all').addEventListener('click', async () => {
+  const btn = $('all');
+  btn.disabled = true;
+  btn.textContent = 'Zipping…';
+  try {
+    const zip = await makeZip(state.slides);
+    const url = URL.createObjectURL(zip);
+    download({ url, name: `${state.base}_slides.zip` });
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } catch {
+    showError('Could not build the zip. Save the slides one at a time instead.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Download .zip';
+  }
 });
+
+$('another').addEventListener('click', () => $('file').click());
 
 $('file').addEventListener('change', (e) => {
   handleFile(e.target.files[0]);
@@ -287,6 +536,8 @@ window.addEventListener('drop', (e) => {
   e.preventDefault();
   if (!drop.contains(e.target)) handleFile(e.dataTransfer.files[0]);
 });
+
+renderRuler(3);
 </script>
 </body>
 </html>
